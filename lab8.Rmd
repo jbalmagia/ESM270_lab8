@@ -1,0 +1,101 @@
+---
+title: "Lab 8"
+author: "Jenny Balmagia"
+date: "May 22, 2019"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+#Load Packages 
+library(tidyverse)
+library(raster)
+library(rgdal)
+library(rasterVis)
+library(maps)
+library(rgeos)
+library(RColorBrewer)
+library(sp)
+```
+
+```{r}
+##Setting up colors and plot views ###
+
+# view some color palettes
+# display.brewer.all()
+# rainbow color scheme
+cols = rev(colorRampPalette(brewer.pal(11, 'Spectral'))(255)) 
+
+#setting smaller margins for plotting
+par(mar=c(2,2,1,1))
+
+```
+
+
+
+```{r}
+#Import Data
+
+all_threats <- raster("full_modelnv.tif")
+#all_threats in console to check CRS, and other metadata
+
+all_spp <- raster("ca_curr_sp_rich.tif")
+
+```
+
+
+
+```{r}
+#Explore All Threats Data - Visualize, Summary Stats, Setting Extent 
+
+plot(all_threats, col=cols)
+
+# add a landmap to your shapefile. the add=T argument tells R to add it to the existing plot.
+# make sure you understand what the other arguments do
+plot(all_threats,ext=extent(-130,-110,24,50),col=cols) #extent zooms into a region
+map('world',fill=T,add=T,col='gray')
+
+plot(all_threats, col=cols, ext=extent(-121,-117,32,35), main="Cumulative Threats") #setting extent for the Santa Barbara Channel
+
+#Explore raster cell values to look at how much of each threat level present, gives distribution of data
+hist(all_threats, main="Cumulative Threats Frequency")
+
+cellStats(all_threats,mean)#Mean raster cell value
+cellStats(all_threats,sd) #Standard dev of mean
+
+#Look at species data
+plot(all_spp, col=cols)
+
+```
+
+Analysis Time!
+Goal: Find Threat Hotspots
+To do this, overlay the top 20% of cumulative threats with the top 20% of species richness
+```{r}
+#Step 1: Match Extents and Resolution: using crop() and resample()
+
+#crop threats since its bigger
+threats_crop <- crop(all_threats, all_spp)#crop threats to spp extent
+
+#resample species raster to match resolution of threats layer (higher res)
+
+# the method='ngb' argument specifies that we want to use a nearest neighbor algorithm to resample, instead of interpolation
+spp_res <- resample(all_spp,threats_crop,method='ngb',progress='text')
+# NOTE: the progress='text' argument is a great tool: it prints out the progress of a longer-running function into the console, so you can see how the operation is going
+
+#Check the two layers line up decently with stack(), more useful for larger number of layers 
+
+spp_threat_stack <- stack(threats_crop, spp_res)
+plot(spp_threat_stack, col=cols)
+
+```
+
+```{r}
+#Step 2: Reclassify to find top 20% in each layer
+
+
+```
+
