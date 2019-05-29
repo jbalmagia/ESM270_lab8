@@ -151,6 +151,17 @@ map('world', fill=T, add=T, col ='gray')
 ```{r}
 #Step 3: Find Hotspots
 
+hotspots <- overlay(spp_binary, threat_binary, fun = function(x,y){x+y})#addition so we can see overlap
 
+#make colors for 3 breakpoints (cell values 0,1,2)
+brks_hotspots <- seq(0,3,length.out = 4)
+hotspot_cols <- c("white", "lightblue", "firebrick")
+
+#plot hotspots
+plot(hotspots, col = hotspot_cols, legend = F, main = "Hotspots"); map("world", fill=T, add=T, col = "gray80")
+
+#Plot hotspots for SB channel extent
+plot(hotspots, col = hotspot_cols, ext=extent(-121,-117,32,35), main= "Hotspots, SB Channel", legend=F)
+map("world", fill=T, add=T, col="gray80")
 ```
 
