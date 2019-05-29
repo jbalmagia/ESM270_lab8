@@ -108,7 +108,7 @@ spp_maxVal <-cellStats(spp_res_na,max)#find maximum
 
 #Make reclassification matrix
 rcl_mat_spp <- c(-Inf,spp_cutoff,0,
-                 spp_cutoff,spp_maxVal,1)#Everything below cutoff is 0, everything above to the max value is 1 (top 20%)
+                 spp_cutoff,spp_ma xVal,1)#Everything below cutoff is 0, everything above to the max value is 1 (top 20%)
 
 #Apply to species layer
 spp_binary <- reclassify(spp_res_na, rcl=rcl_mat_spp)
@@ -163,5 +163,88 @@ plot(hotspots, col = hotspot_cols, legend = F, main = "Hotspots"); map("world", 
 #Plot hotspots for SB channel extent
 plot(hotspots, col = hotspot_cols, ext=extent(-121,-117,32,35), main= "Hotspots, SB Channel", legend=F)
 map("world", fill=T, add=T, col="gray80")
+```
+
+All Species, Land-Based Water Quality Pollution threats
+
+```{r}
+#Read in rasters
+nutrients <- raster("impact_nutrients.tif")
+sed_increase <- raster("impact_sed_increase.tif")
+sed_decrease <- raster("impact_sed_decrease.tif")
+organic <- raster("impact_organic.tif")
+inorganic <- raster("impact_inorganic.tif")
+
+```
+
+
+```{r}
+#Explore and Visualize data, make it all same extent and resolution
+
+plot(nutrients, col = cols, ext=extent(-121,-117,32,35))
+plot(sed_increase, col = cols, ext=extent(-121,-117,32,35))
+plot(sed_decrease, col = cols, ext=extent(-121,-117,32,35))
+plot(organic, col = cols, ext=extent(-121,-117,32,35))
+plot(inorganic, col = cols, ext=extent(-121,-117,32,35))
+
+plot(spp_res, col = cols, ext=extent(-121,-117,32,35))
+
+
+nut_crop <- crop(nutrients, spp_res)
+sed_inc_crop <- crop(sed_increase, spp_res)
+sed_dec_crop <- crop(sed_decrease, spp_res)
+org_crop <- crop(organic, spp_res)
+inorg_crop <- crop(inorganic, spp_res)
+
+threat_crop_stack <- stack(nut_crop, sed_inc_crop, sed_dec_crop, org_crop,inorg_crop)
+
+all_stack <- stack(threat_crop_stack, spp_res)
+
+
+```
+
+
+
+```{r}
+#Re-assign 0s for all threat layers
+
+nut_na <- reclassify(nut_crop, rcl = c(-Inf,0,NA))
+sed_inc_na <- (reclassify(sed_inc_crop, rcl = c(-Inf,0,NA)))
+sed_dec_na <- reclassify(sed_dec_crop, rcl = c(-Inf,0,NA))
+org_na <- reclassify(org_crop, rcl = c(-Inf,0,NA))
+inorg_na <- reclassify(inorg_crop, rcl = c(-Inf,0,NA))
+
+#### Function to output a binary raster based on a user-given quantile (default is top 20%) ###
+reclassify_topx <- function(rast,quant=0.8) {
+  topx <- quantile(rast,quant) #find the 80% quantile of the raster values
+  maxVal <- cellStats(rast,max) #find the maximum
+  rcl <- c(-Inf,topx,0,
+            topx,maxVal,1) # reclassify matrix (see help file for ?reclassify)
+  out <- reclassify(rast,rcl=rcl)
+  return(out) # returns the new binary raster
+}
+
+#Find top 20% of each layer, makes binary raster 
+
+nut_binary <- reclassify_topx(nut_na)
+sed_inc_binary <- reclassify_topx(sed_inc_na)
+sed_dec_binary <- reclassify_topx(sed_dec_na)
+org_binary <- reclassify_topx(org_na)
+inorg_binary <- reclassify_topx(inorg_na)
+
+#HOTSPOTS##
+hotspots_allthreats <- overlay(nut_binary, sed_inc_binary,
+                                sed_dec_binary, org_binary, 
+                                inorg_binary, 
+                                fun=function(a,b,c,d,e){a+b+c+d+e})
+
+hotspots_spp_threats <- overlay(hotspots_allthreats,spp_binary,fun=function(x,y){x*y})
+
+hotspot_cols_landthreats <- c("white","lightblue", "deeppink","darkorchid","darkgoldenrod1", "firebrick")
+
+#Plot hotspots
+plot(hotspots_spp_threats, col = hotspot_cols_landthreats,ext=extent(-121,-117,32,35),legend=T,main = "Hotspots");map("world", fill=T, add=T, col = "gray80")
+
+plot(spp_binary,ext=extent(-121,-117,32,35));map("world", fill=T, add=T, col = "gray80")
 ```
 
