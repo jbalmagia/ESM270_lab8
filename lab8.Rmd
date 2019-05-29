@@ -96,6 +96,61 @@ plot(spp_threat_stack, col=cols)
 ```{r}
 #Step 2: Reclassify to find top 20% in each layer
 
+##SPECIES##
+hist(spp_res, main= "Species raster values") #look at the data we're reclassifying
+
+spp_res_na <- reclassify(spp_res, rcl=c(-Inf,0,NA)) #turn 0 into NA
+hist(spp_res_na)#check it worked
+
+#Find top 20% now
+spp_cutoff <- quantile(spp_res_na, 0.8) #find the value of the 80th percentile
+spp_maxVal <-cellStats(spp_res_na,max)#find maximum
+
+#Make reclassification matrix
+rcl_mat_spp <- c(-Inf,spp_cutoff,0,
+                 spp_cutoff,spp_maxVal,1)#Everything below cutoff is 0, everything above to the max value is 1 (top 20%)
+
+#Apply to species layer
+spp_binary <- reclassify(spp_res_na, rcl=rcl_mat_spp)
+
+#Check our reclassification by plotting
+
+binary_cols <- c("white","firebrick") #new color scheme for binary
+plot(spp_binary, col=binary_cols, legend=F, main = "Top 20% Species Richness")
+map('world', fill=T, add=T, col ='gray')
+```
+
+```{r}
+#Step 2 for THREATS
+##SPECIES##
+hist(threats_crop, main= "threats raster values") #look at the data we're reclassifying
+
+threats_crop_na <- reclassify(threats_crop, rcl=c(-Inf,0,NA)) #turn 0 into NA
+hist(threats_crop_na)#check it worked
+
+#Find top 20% now
+threat_cutoff <- quantile(threats_crop_na, 0.8) #find the value of the 80th percentile
+threat_maxVal <-cellStats(threats_crop_na,max)#find maximum
+
+#Make reclassification matrix
+rcl_mat_threats <- c(-Inf,threat_cutoff,0,
+                 threat_cutoff,threat_maxVal,1)#Everything below cutoff is 0, everything above to the max value is 1 (top 20%)
+
+#Apply to species layer
+threat_binary <- reclassify(threats_crop_na, rcl=rcl_mat_threats)
+
+#Check our reclassification by plotting
+
+binary_cols <- c("white","firebrick") #new color scheme for binary
+plot(threat_binary, col=binary_cols, legend=F, main = "Top 20% Cummulative Threats")
+map('world', fill=T, add=T, col ='gray')
+
+```
+
+
+```{r}
+#Step 3: Find Hotspots
+
 
 ```
 
